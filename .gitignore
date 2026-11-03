@@ -68,3 +68,6 @@ crash.log
 # Evidencias de configuracao (prints de tela etc.) usadas so para acompanhamento
 # interno do checklist - nao sao documentacao do projeto, nao versionar.
 docs/evidencia-colaborador-soat/
+
+# Chaves e artefatos do ambiente local
+.local/
