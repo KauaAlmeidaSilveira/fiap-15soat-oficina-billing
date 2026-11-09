@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Build, testes e cobertura
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Gerar chaves de teste
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out src/main/resources/jwt.private.key
+          openssl rsa -in src/main/resources/jwt.private.key -pubout -out src/main/resources/jwt.public.key
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out src/main/resources/aprovacao.private.key
+          openssl rsa -in src/main/resources/aprovacao.private.key -pubout -out src/main/resources/aprovacao.public.key
+
+      - name: Build, testes e gate de 80%
+        run: mvn -B verify
+
+      - name: SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
