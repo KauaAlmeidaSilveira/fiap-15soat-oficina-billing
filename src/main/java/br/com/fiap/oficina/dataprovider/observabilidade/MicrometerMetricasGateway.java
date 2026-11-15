@@ -5,6 +5,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class MicrometerMetricasGateway implements MetricasGateway {
@@ -14,5 +16,6 @@ public class MicrometerMetricasGateway implements MetricasGateway {
     @Override
     public void falhaDeIntegracao(String integracao, String motivo) {
         registry.counter("oficina.integracao.falhas", "integracao", integracao, "motivo", motivo).increment();
+        EventosNewRelic.registrar("OficinaIntegracaoFalha", Map.of("servico", "billing", "integracao", integracao, "motivo", motivo));
     }
 }

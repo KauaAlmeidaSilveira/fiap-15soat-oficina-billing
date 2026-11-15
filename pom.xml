@@ -30,6 +30,8 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <logstash-logback.version>7.4</logstash-logback.version>
         <newrelic-logback.version>3.5.0</newrelic-logback.version>
+        <!-- Mesma versão do agente baixado no Dockerfile -->
+        <newrelic-api.version>9.4.0</newrelic-api.version>
         <sonar.coverage.exclusions>
             **/config/DataLoader.java,
             **/OficinaApplication.java
@@ -112,6 +114,11 @@
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>${logstash-logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.newrelic.agent.java</groupId>
+            <artifactId>newrelic-api</artifactId>
+            <version>${newrelic-api.version}</version>
         </dependency>
         <dependency>
             <groupId>com.newrelic.logging</groupId>
