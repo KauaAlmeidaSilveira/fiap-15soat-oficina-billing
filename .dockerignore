@@ -1,0 +1,6 @@
+# Chaves e credenciais nunca entram na imagem: no cluster elas chegam por Secret em /app/keys.
+**/*.key
+.env
+.local/
+target/
+.git/

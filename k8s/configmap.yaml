@@ -1,0 +1,29 @@
+# Valores ${...} sao preenchidos pelo scripts/deploy-aws.sh do repositorio do OS (envsubst).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oficina-billing-config
+  namespace: oficina
+data:
+  # simulacao liga a injecao de falha (PUT /api/simulacao/falha, so ADMIN) para demonstrar as compensacoes da Saga. A rota nao passa pelo API Gateway: usar kubectl port-forward.
+  SPRING_PROFILES_ACTIVE: "default,simulacao"
+  # Criada em infra-db; o acesso vem da role do Pod Identity.
+  DYNAMODB_TABELA: "oficina-billing"
+  # Token de sessao emitido pela Lambda.
+  JWT_PUBLIC_KEY: "file:/app/keys/sessao.public.key"
+  # URL do API Gateway (terraform output api_gateway_url em lambda-auth).
+  JWT_ISSUER: "${JWT_ISSUER}"
+  # Base do link de aprovacao enviado por e-mail: a URL do API Gateway.
+  APP_PUBLIC_BASE_URL: "${APP_PUBLIC_BASE_URL}"
+  APROVACAO_JWT_PUBLIC_KEY: "file:/app/keys/aprovacao.public.key"
+  # Par exclusivo do link de aprovacao.
+  APROVACAO_JWT_PRIVATE_KEY: "file:/app/keys/aprovacao.private.key"
+  # Mesmo host para teste e producao: o ambiente vem do token.
+  MERCADOPAGO_BASE_URL: "https://api.mercadopago.com"
+  AWS_REGION: "us-east-1"
+  NEW_RELIC_APP_NAME: "oficina-billing"
+  # Os logs JSON chegam ao New Relic pelo nri-bundle (stdout); o forwarding do agente duplicaria.
+  NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "false"
+  # O SMTP (Gmail) e externo: fora do ar ou sem credencial, nao pode derrubar o pod pelas probes,
+  # que usam /actuator/health. O envio continua; falha vira log de erro.
+  MANAGEMENT_HEALTH_MAIL_ENABLED: "false"

@@ -45,6 +45,30 @@ class WebhookMercadoPagoControllerIT {
     }
 
     @Test
+    @DisplayName("Assinatura com o id de order na grafia original é aceita (formato real do Mercado Pago)")
+    void assinaturaComIdOriginal() throws Exception {
+        String v1 = AssinaturaWebhook.hmac("id:ORDTST01ABC;request-id:req;ts:100;", "segredo-de-teste");
+
+        mockMvc.perform(post("/webhooks/mercado-pago").param("type", "order").param("data.id", "ORDTST01ABC")
+                        .header("x-signature", "ts=100,v1=" + v1).header("x-request-id", "req"))
+                .andExpect(status().isOk());
+
+        verify(billingUseCase).processarNotificacaoOrder("ORDTST01ABC");
+    }
+
+    @Test
+    @DisplayName("Sem x-request-id, o manifesto omite essa parte")
+    void assinaturaSemRequestId() throws Exception {
+        String v1 = AssinaturaWebhook.hmac("id:ORD2;ts:100;", "segredo-de-teste");
+
+        mockMvc.perform(post("/webhooks/mercado-pago").param("type", "order").param("data.id", "ORD2")
+                        .header("x-signature", "ts=100,v1=" + v1))
+                .andExpect(status().isOk());
+
+        verify(billingUseCase).processarNotificacaoOrder("ORD2");
+    }
+
+    @Test
     @DisplayName("Assinatura errada ou malformada responde 401 e não consulta nada")
     void assinaturaErrada() throws Exception {
         mockMvc.perform(post("/webhooks/mercado-pago").param("type", "order").param("data.id", "ORD1")
