@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oficina-billing
+  namespace: oficina
+  labels:
+    app: oficina-billing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oficina-billing
+  template:
+    metadata:
+      labels:
+        app: oficina-billing
+      annotations:
+        # Muda quando ConfigMap ou Secrets mudam, forcando o rollout (preenchido pelo deploy).
+        oficina/config-hash: "${CONFIG_HASH}"
+        # Faz o nri-prometheus raspar as metricas oficina_* do actuator.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: oficina-billing
+      containers:
+        - name: oficina-billing
+          # URI do ECR (terraform output ecr_repositorios em infra-k8s) com a tag do commit.
+          image: "${IMAGEM}"
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: oficina-billing-config
+            - secretRef:
+                name: oficina-billing-secrets
+          volumeMounts:
+            - name: chaves
+              mountPath: /app/keys
+              readOnly: true
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "384Mi"
+            # O boot (Spring + Hibernate + agente New Relic) e limitado por CPU. O HPA calcula
+            # sobre o request, entao o limite nao o afeta.
+            limits:
+              cpu: "1000m"
+              memory: "768Mi"
+          # Segura liveness e readiness ate o primeiro health OK (ate 5 min).
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: chaves
+          secret:
+            secretName: oficina-billing-chaves
+            items:
+              - key: sessao.public.key
+                path: sessao.public.key
+              - key: aprovacao.private.key
+                path: aprovacao.private.key
+              - key: aprovacao.public.key
+                path: aprovacao.public.key
