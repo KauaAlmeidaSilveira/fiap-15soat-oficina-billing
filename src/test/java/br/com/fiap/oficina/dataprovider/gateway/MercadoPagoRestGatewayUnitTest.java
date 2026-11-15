@@ -18,6 +18,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -78,6 +79,20 @@ class MercadoPagoRestGatewayUnitTest {
                 {"id":"rec","status":"created","transactions":{"payments":[{"id":"P1","status":"failed"}]}}""")));
         assertThat(gateway.consultarOrder("rec").pagamentoRecusado()).isTrue();
         assertThat(gateway.consultarOrder("rec").paymentId()).isEqualTo("P1");
+    }
+
+    @Test
+    @DisplayName("Order inexistente (404) vira OrderNaoEncontrada na primeira; 5xx continua falha comum")
+    void orderInexistente() {
+        mp.stubFor(get("/v1/orders/NAOEXISTE").willReturn(aResponse().withStatus(404)));
+        assertThatThrownBy(() -> gateway.consultarOrder("NAOEXISTE"))
+                .isInstanceOf(MercadoPagoGateway.OrderNaoEncontradaException.class);
+        mp.verify(1, getRequestedFor(urlEqualTo("/v1/orders/NAOEXISTE")));
+
+        mp.stubFor(get("/v1/orders/INSTAVEL").willReturn(aResponse().withStatus(503)));
+        assertThatThrownBy(() -> gateway.consultarOrder("INSTAVEL"))
+                .isInstanceOf(MercadoPagoGateway.FalhaMercadoPagoException.class)
+                .isNotInstanceOf(MercadoPagoGateway.OrderNaoEncontradaException.class);
     }
 
     @Test

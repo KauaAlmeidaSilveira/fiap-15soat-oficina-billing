@@ -390,6 +390,20 @@ class BillingUseCaseUnitTest {
     }
 
     @Test
+    @DisplayName("Webhook de order inexistente é ignorado; falha temporária do Mercado Pago sobe para ele reenviar")
+    void webhookOrderInexistente() {
+        comCobranca();
+        when(mercadoPago.consultarOrder("123")).thenThrow(new MercadoPagoGateway.OrderNaoEncontradaException("404", null));
+        when(mercadoPago.consultarOrder("ORD1")).thenThrow(new MercadoPagoGateway.FalhaMercadoPagoException("503", null));
+
+        useCase.processarNotificacaoOrder("123");
+
+        assertThat(gateway.eventos).isEmpty();
+        assertThatThrownBy(() -> useCase.processarNotificacaoOrder("ORD1"))
+                .isInstanceOf(MercadoPagoGateway.FalhaMercadoPagoException.class);
+    }
+
+    @Test
     @DisplayName("Order em aberto, sem recusa, não muda nada")
     void orderEmAberto() {
         comCobranca();

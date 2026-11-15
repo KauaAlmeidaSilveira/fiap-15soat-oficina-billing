@@ -17,6 +17,16 @@ public interface MercadoPagoGateway {
         }
     }
 
+    /**
+     * A order não existe no Mercado Pago (404): falha permanente, repetir não adianta. É uma
+     * {@link FalhaMercadoPagoException}, então quem já trata a falha genérica continua igual.
+     */
+    class OrderNaoEncontradaException extends FalhaMercadoPagoException {
+        public OrderNaoEncontradaException(String mensagem, Throwable causa) {
+            super(mensagem, causa);
+        }
+    }
+
     /** O Mercado Pago só cancela order em {@code created}. */
     class CancelamentoRecusadoException extends RuntimeException {
         public CancelamentoRecusadoException(String mensagem, Throwable causa) {

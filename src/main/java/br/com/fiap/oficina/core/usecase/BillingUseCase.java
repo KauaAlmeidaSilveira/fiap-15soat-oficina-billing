@@ -205,9 +205,19 @@ public class BillingUseCase {
         }
     }
 
-    /** Webhook: o corpo só diz qual order consultar; quem decide é a resposta da API do Mercado Pago. */
+    /**
+     * Webhook: o corpo só diz qual order consultar; quem decide é a resposta da API do Mercado Pago.
+     * Order inexistente (id de teste do painel, chamada de terceiros) é ignorada: devolver erro faria o
+     * Mercado Pago reenviar algo que nunca vai dar certo. Falha temporária continua subindo, para ele reenviar.
+     */
     public void processarNotificacaoOrder(String orderId) {
-        Order order = mercadoPago.consultarOrder(orderId);
+        Order order;
+        try {
+            order = mercadoPago.consultarOrder(orderId);
+        } catch (MercadoPagoGateway.OrderNaoEncontradaException e) {
+            LOG.log(System.Logger.Level.WARNING, "Notificação ignorada: order " + orderId + " não existe no Mercado Pago");
+            return;
+        }
         Long osId;
         try {
             osId = Long.valueOf(order.externalReference());
