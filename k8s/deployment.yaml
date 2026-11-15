@@ -48,23 +48,25 @@ spec:
               cpu: "1000m"
               memory: "768Mi"
           # Segura liveness e readiness ate o primeiro health OK (ate 5 min).
+          # Grupos de probe do Spring Boot: nao incluem dependencias externas (banco, SMTP, Mercado Pago),
+          # entao uma falha delas nao reinicia nem tira o pod de circulacao.
           startupProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/liveness
               port: 8080
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 30
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8080
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/liveness
               port: 8080
             periodSeconds: 15
             timeoutSeconds: 5

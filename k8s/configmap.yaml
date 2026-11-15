@@ -27,6 +27,6 @@ data:
   NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "true"
   # Leva o MDC (correlationId, sagaId) como atributos context.* do Log: busca por OS ou Saga no New Relic.
   NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CONTEXT_DATA_ENABLED: "true"
-  # O SMTP (Gmail) e externo: fora do ar ou sem credencial, nao pode derrubar o pod pelas probes,
-  # que usam /actuator/health. O envio continua; falha vira log de erro.
+  # As probes usam os grupos liveness/readiness, que ja ignoram o SMTP; isto tira o SMTP tambem do
+  # /actuator/health completo, para ele nao aparecer DOWN so por falta de credencial do Gmail.
   MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
