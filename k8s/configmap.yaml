@@ -22,8 +22,11 @@ data:
   MERCADOPAGO_BASE_URL: "https://api.mercadopago.com"
   AWS_REGION: "us-east-1"
   NEW_RELIC_APP_NAME: "oficina-billing"
-  # Os logs JSON chegam ao New Relic pelo nri-bundle (stdout); o forwarding do agente duplicaria.
-  NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "false"
+  # Logs enviados pelo proprio agente, com trace.id e span.id (logs in context): o nri-bundle nao sobe no
+  # node de 1 vCPU. Se ele voltar a ser instalado, desligar aqui para nao duplicar.
+  NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "true"
+  # Leva o MDC (correlationId, sagaId) como atributos context.* do Log: busca por OS ou Saga no New Relic.
+  NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CONTEXT_DATA_ENABLED: "true"
   # O SMTP (Gmail) e externo: fora do ar ou sem credencial, nao pode derrubar o pod pelas probes,
   # que usam /actuator/health. O envio continua; falha vira log de erro.
   MANAGEMENT_HEALTH_MAIL_ENABLED: "false"

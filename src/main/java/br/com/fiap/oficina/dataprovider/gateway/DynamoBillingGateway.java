@@ -5,6 +5,7 @@ import br.com.fiap.oficina.core.domain.entity.Orcamento;
 import br.com.fiap.oficina.core.domain.mensageria.EventoSaida;
 import br.com.fiap.oficina.core.gateway.BillingGateway;
 import br.com.fiap.oficina.dataprovider.mensageria.Envelope;
+import br.com.fiap.oficina.dataprovider.mensageria.RastreioDistribuido;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -127,7 +128,7 @@ public class DynamoBillingGateway implements BillingGateway {
         Instant agora = Instant.now();
         var ctx = evento.contexto();
         Envelope envelope = new Envelope(id, evento.tipo(), 1, ctx.sagaId(), ctx.osId(), ctx.correlationId(),
-                ctx.causationId(), agora, objectMapper.valueToTree(evento.payload()));
+                ctx.causationId(), agora, objectMapper.valueToTree(evento.payload()), RastreioDistribuido.capturar());
         Map<String, AttributeValue> item = new HashMap<>(chave("OUTBOX#" + id, "MSG"));
         item.put(OUTBOX_PENDENTE, s("1"));
         item.put("criadoEm", s(agora.toString()));
