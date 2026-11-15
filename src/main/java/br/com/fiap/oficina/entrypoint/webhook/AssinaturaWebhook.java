@@ -8,7 +8,11 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Locale;
 
-/** Formato do manifesto a conferir na compra de teste: as páginas lidas não o descrevem por completo. */
+/**
+ * Manifesto assinado: {@code id:<data.id>;request-id:<x-request-id>;ts:<ts>;}, sem as partes ausentes.
+ * Na notificação de order real (teste de 15/11/2026), o Mercado Pago assinou o data.id na grafia
+ * original (ORDTST...), não em minúsculas como diz a documentação de payments; as duas são aceitas.
+ */
 public final class AssinaturaWebhook {
 
     private AssinaturaWebhook() {}
@@ -27,8 +31,17 @@ public final class AssinaturaWebhook {
         if (ts == null || v1 == null) {
             return false;
         }
-        String manifesto = "id:" + dataId.toLowerCase(Locale.ROOT) + ";request-id:" + requestId + ";ts:" + ts + ";";
-        return MessageDigest.isEqual(hmac(manifesto, segredo).getBytes(StandardCharsets.UTF_8), v1.getBytes(StandardCharsets.UTF_8));
+        byte[] recebida = v1.getBytes(StandardCharsets.UTF_8);
+        for (String id : new String[] {dataId, dataId.toLowerCase(Locale.ROOT)}) {
+            if (MessageDigest.isEqual(hmac(manifesto(id, requestId, ts), segredo).getBytes(StandardCharsets.UTF_8), recebida)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static String manifesto(String dataId, String requestId, String ts) {
+        return "id:" + dataId + ";" + (requestId == null || requestId.isBlank() ? "" : "request-id:" + requestId + ";") + "ts:" + ts + ";";
     }
 
     public static String hmac(String manifesto, String segredo) {
