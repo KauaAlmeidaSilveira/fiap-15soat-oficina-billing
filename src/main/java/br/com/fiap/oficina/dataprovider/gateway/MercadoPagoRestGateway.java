@@ -67,8 +67,15 @@ public class MercadoPagoRestGateway implements MercadoPagoGateway {
 
     @Override
     public Order consultarOrder(String orderId) {
-        return comTentativas("consultar order " + orderId,
-                () -> paraOrder(rest.get().uri("/v1/orders/{id}", orderId).retrieve().body(JsonNode.class)));
+        try {
+            return comTentativas("consultar order " + orderId,
+                    () -> paraOrder(rest.get().uri("/v1/orders/{id}", orderId).retrieve().body(JsonNode.class)));
+        } catch (FalhaMercadoPagoException e) {
+            if (e.getCause() instanceof HttpClientErrorException.NotFound) {
+                throw new OrderNaoEncontradaException("Order " + orderId + " não existe no Mercado Pago", e.getCause());
+            }
+            throw e;
+        }
     }
 
     @Override
