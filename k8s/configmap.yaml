@@ -24,3 +24,6 @@ data:
   NEW_RELIC_APP_NAME: "oficina-billing"
   # Os logs JSON chegam ao New Relic pelo nri-bundle (stdout); o forwarding do agente duplicaria.
   NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "false"
+  # O SMTP (Gmail) e externo: fora do ar ou sem credencial, nao pode derrubar o pod pelas probes,
+  # que usam /actuator/health. O envio continua; falha vira log de erro.
+  MANAGEMENT_HEALTH_MAIL_ENABLED: "false"

@@ -40,7 +40,7 @@ spec:
               readOnly: true
           resources:
             requests:
-              cpu: "250m"
+              cpu: "50m"
               memory: "384Mi"
             # O boot (Spring + Hibernate + agente New Relic) e limitado por CPU. O HPA calcula
             # sobre o request, entao o limite nao o afeta.
