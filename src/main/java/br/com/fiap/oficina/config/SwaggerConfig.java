@@ -1,32 +1,36 @@
 package br.com.fiap.oficina.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
 
+    static final String ESQUEMA = "bearer-jwt";
+
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Oficina Mecanica API")
+                        .title("Oficina Mecânica - Billing Service")
                         .description("""
-                                Sistema Integrado de Atendimento e Execucao de Servicos - MVP
+                                Orçamento, aprovação pelo cliente, cobrança por QR Code do Mercado Pago (Orders API) e
+                                e-mails. Participa da Saga gerando orçamento e cobrança e pedindo reembolso.
 
-                                Todos os endpoints estao abertos (sem autenticacao nesta versao MVP).
-
-                                Links uteis:
-                                - H2 Console: http://localhost:8080/h2-console
-                                  - JDBC URL: jdbc:h2:mem:oficina
-                                  - User: sa | Password: (vazio)
+                                Autenticação: Bearer JWT de sessão, emitido pela Lambda de login no API Gateway
+                                (POST /auth/funcionario, POST /auth/cliente). As permissões vêm da claim roles.
+                                Sem token: GET /aprovacao-os (link assinado do e-mail) e POST /webhooks/mercado-pago (assinatura do Mercado Pago).
                                 """)
-                        .version("1.0.0-MVP")
-                        .contact(new Contact()
-                                .name("FIAP SOAT - Grupo Oficina")
-                                .email("soat@fiap.com.br")));
+                        .version("4.0.0"))
+                .components(new Components().addSecuritySchemes(ESQUEMA, new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList(ESQUEMA));
     }
 }
