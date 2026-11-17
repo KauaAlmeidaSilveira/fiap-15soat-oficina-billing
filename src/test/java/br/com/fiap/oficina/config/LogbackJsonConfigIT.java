@@ -9,9 +9,12 @@ import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.ConsoleAppender;
 import com.newrelic.logging.logback.NewRelicAsyncAppender;
 import net.logstash.logback.encoder.LogstashEncoder;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -34,6 +37,22 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.mail.host=localhost"
 })
 class LogbackJsonConfigIT {
+
+    /*
+     * O Spring Boot só aplica o logback-spring.xml uma vez por JVM: os contextos seguintes encontram o
+     * Logback marcado como inicializado e não reconfiguram. Se outro teste (profile "test") subir antes,
+     * este contexto ficaria com o CONSOLE dele. Desmarcar antes faz o Spring reaplicar o XML com o
+     * profile "default"; desmarcar depois devolve o profile "test" ao próximo contexto.
+     */
+    @BeforeAll
+    static void reaplicarLogbackNoProximoContexto() {
+        LoggingSystem.get(LogbackJsonConfigIT.class.getClassLoader()).cleanUp();
+    }
+
+    @AfterAll
+    static void liberarLogbackParaOsProximosTestes() {
+        LoggingSystem.get(LogbackJsonConfigIT.class.getClassLoader()).cleanUp();
+    }
 
     private static Appender<ILoggingEvent> appenderDaRaiz() {
         Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
