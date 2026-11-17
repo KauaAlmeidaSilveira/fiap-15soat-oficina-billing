@@ -93,3 +93,19 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out src/main/resou
 openssl rsa -in src/main/resources/aprovacao.private.key -pubout -out src/main/resources/aprovacao.public.key
 mvn verify
 ```
+
+## Cobertura e qualidade
+
+O `mvn verify` falha se a cobertura de instruções do serviço inteiro ficar abaixo de 80% (JaCoCo, só
+`DataLoader` e `OficinaApplication` fora da conta). O relatório fica em `target/site/jacoco/index.html`.
+
+Execução local de 16/11/2026, na `main` (`7aef492`):
+
+| Testes | Falhas | Instruções | Linhas | Ramos | Gate (80% de instruções) |
+|---|---|---|---|---|---|
+| 93 | 0 | 94,9% | 94,3% | 84,3% | Passou |
+
+No SonarQube local de 15/11/2026 (`scripts/sonar-local.sh` no OS), o Billing passou no quality gate "Sonar way"
+com 92,5% de cobertura e nota A em confiabilidade, segurança, revisão de segurança e manutenibilidade. Os três
+serviços estão na seção "Qualidade" do [README do OS](https://github.com/KauaAlmeidaSilveira/fiap-15soat-oficina-os#qualidade-sonarqube).
+O `ci.yml` roda o mesmo `mvn verify` e o SonarCloud, mas o GitHub Actions da conta está bloqueado por billing.
