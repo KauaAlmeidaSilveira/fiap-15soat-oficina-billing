@@ -7,7 +7,81 @@ Microsserviço da Fase 4 do Tech Challenge: orçamento, aprovação, pagamento e
 - **Link de aprovação:** par de chaves próprio, separado do token de sessão.
 - **E-mails:** orçamento *best-effort*, QR com 3 tentativas e aviso de cancelamento.
 
-> **Ainda não testado com conta real do Mercado Pago.** O caminho do `qr_data`, o método de cancelamento, o formato da assinatura e o status de pagamento recusado seguem a documentação e precisam ser conferidos na compra de teste.
+> **Testado com conta real de teste do Mercado Pago em 15/11/2026, na AWS:** QR dinâmico (`qr_data`), pagamento aprovado pelo app e webhook assinado (o manifesto usa o id da order na grafia original). Cancelamento e pagamento recusado estão cobertos contra o simulador (WireMock).
+
+## Modelo de dados
+
+DynamoDB, tabela única `oficina-billing` (chave `pk` + `sk`). Orçamento e cobrança ficam sob a mesma partição da OS,
+como documento JSON no atributo `dados`; `status` fica fora do documento para as escritas condicionais.
+
+| Item | `pk` | `sk` | Atributos | Para quê |
+|---|---|---|---|---|
+| Orçamento | `OS#<osId>` | `ORCAMENTO` | `status`, `dados` | Itens, valor, cliente, veículo, prazo e decisão |
+| Cobrança | `OS#<osId>` | `COBRANCA` | `status`, `dados` | Order do Mercado Pago, `qr_data`, valor, prazo e pagamento |
+| Outbox | `OUTBOX#<uuid>` | `MSG` | `outboxPendente`, `criadoEm`, `fila`, `tipo`, `corpo`, `reservadoAte` | Evento gravado na mesma transação do estado |
+| Inbox | `INBOX#<messageId>` | `MSG` | `expiraEm` (TTL de 14 dias) | Comando já processado |
+
+```mermaid
+erDiagram
+    ORCAMENTO ||--o| COBRANCA : "mesma pk OS#osId"
+    ORCAMENTO ||--|{ ITEM : "lista em dados"
+
+    ORCAMENTO {
+        string pk PK "OS#osId"
+        string sk PK "ORCAMENTO"
+        string status "ENVIADO, APROVADO, RECUSADO, EXPIRADO, CANCELADO"
+        uuid id
+        uuid sagaId
+        string numeroOs
+        decimal valorTotal
+        instant expiraEm "7 dias"
+        string clienteNome
+        string clienteEmail
+        string veiculoPlaca
+        string origemDecisao "CLIENTE ou OFICINA"
+        instant decididoEm
+    }
+    ITEM {
+        string nomeProduto
+        int quantidade
+        decimal precoUnitario
+    }
+    COBRANCA {
+        string pk PK "OS#osId"
+        string sk PK "COBRANCA"
+        string status "CRIADA, PAGA, ENCERRADA, ESTORNADA, BLOQUEADA"
+        uuid id
+        uuid orcamentoId
+        decimal valor
+        string mpOrderId "order do Mercado Pago"
+        string paymentId
+        string qrData
+        instant expiraEm "validade do QR"
+        instant pagoEm
+    }
+    OUTBOX {
+        string pk PK "OUTBOX#uuid"
+        string sk PK "MSG"
+        string outboxPendente "GSI, removido ao publicar"
+        string criadoEm "GSI"
+        string fila
+        string tipo
+        string corpo "envelope JSON"
+        number reservadoAte "reserva de 30 s"
+    }
+    INBOX {
+        string pk PK "INBOX#messageId"
+        string sk PK "MSG"
+        number expiraEm "TTL"
+    }
+```
+
+- **Escritas condicionais:** a decisão do orçamento só sai de `ENVIADO` (a primeira vence; a segunda vira 409), e o
+  pagamento só confirma uma cobrança `CRIADA` ou `ENCERRADA` (pagamento tardio, que a Saga reembolsa), sempre condicionado
+  ao status lido. Uma cobrança já `PAGA` não muda: webhook repetido não paga duas vezes.
+- **Transação:** a mudança de status, o evento no outbox e o registro no inbox vão juntos em `TransactWriteItems`.
+- **Índice `outbox-pendente`:** GSI esparso (`outboxPendente` + `criadoEm`); só os itens ainda não publicados aparecem
+  nele. Cada réplica reserva o item por 30 s antes de publicar.
 
 ## Rodar os testes
 
